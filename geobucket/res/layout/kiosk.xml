@@ -1,0 +1,25 @@
+<presets description="Airtime Kiosks in Kampala" shortdescription="Kiosks">
+
+<item name="Basics" type="node">
+<space/>
+<text key="telecom_operator" text="Telecom_Name" delete_if_empty="true"/>
+<combo key="opening_hours" text="Opening_Hours" values="24/7,Mo-Fr 08:30-20:00,Tu-Su 08:00-15:00; Sa 08:00-12:00" default="" delete_if_empty="true" link="http://wiki.openstreetmap.org/wiki/Key:opening_hours"/>
+<text key="contact:phone" text="Mobile" />
+<space/>
+<combo key="operator:type" text="Run/Owned By" values="telecom_company,private,religious,local_ngo,international_ngo,other" delete_if_empty="true"/>
+<space/>
+</item>
+
+<item name="Products">
+<combo key="products:airtime" text="Airtime_sales" values="yes,no" />
+<combo key="products:phones" text="Phone_sales" values="yes,no" />
+</item>
+
+
+<item name="Services">
+<combo key="services:calls" text="Phone_calls" values="yes,no" />
+<combo key="services:sim:replace" text="Sim_Replacement" values="yes,no" />
+<combo key="services:sim:reg" text="Sim_Registration" values="yes,no" />
+</item>
+
+</presets>

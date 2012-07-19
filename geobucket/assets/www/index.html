@@ -1,0 +1,143 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="stylesheet" href="jquery.mobile-1.1.0.min.css" />
+<link rel="stylesheet" href="jquery.mobile.structure-1.1.0.min.css" />
+<link rel="stylesheet" href="jquery.mobile.theme-1.1.0.min.css" />
+<link rel="stylesheet" href="jquery.mobile.simpledialog.min.css" />
+
+</head>
+<body onload="onLoad()">
+
+	<div data-role="page" id="page_home" data-theme="a">
+
+
+		<div data-role="header" data-position="fixed" data-theme="a">
+			<h1 class="h1">Geo Bucket</h1>
+
+			
+
+		</div>
+		<!-- /header -->
+
+		<div data-role="content" class='content'>
+
+			<fieldset class="ui-grid-a">
+				
+				<div class="ui-block-a" >
+				<div id="start">
+					<input type="button" id="start" value="Start" data-iconpos="top" data-icon="check"><br />
+					</div>
+				<div id="stop"><input type="button" id="stop" value="Stop" data-iconpos="top" data-icon="delete">
+					</div>		
+				</div>
+				
+				<div class="ui-block-b">
+					<input type="button" id="upload" value="Upload" data-iconpos="top" data-icon="arrow-u"><br />
+				</div>
+
+                <div class="ui-block-a">
+                    
+                    <b>Status: </b><p id="stat"></p>
+                </div>
+                
+				<div class="ui-block-a">
+				<br />
+					Bucket Entries Captured:
+					<b><p id="savedentries"></p></b>
+				</div>
+				
+				<div class="ui-block-b">
+				<br />
+                    Bucket Entries Uploaded: <b>
+                    <p id="entry"></p></b><br />
+                    
+                </div>
+
+			</fieldset>
+			<!-- /grid-a -->
+
+
+
+		</div>
+		<!-- /content -->
+
+		<div data-role="footer" data-position="fixed" id="footer">
+<div data-role="navbar">
+                <ul>
+                    <li><a id="settings" data-iconpos="top" data-icon="gear">Settings</a></li>
+                </ul>
+            </div>
+            <!-- /navbar -->
+		</div>
+		<!-- /footer -->
+	</div>
+	<!-- /page -->
+
+
+	<div data-role="page" id="page_login" data-theme="a">
+
+
+		<div data-role="header" data-position="fixed" data-theme="a">
+			<h1 class="h1">Site Login</h1>
+
+			<div data-role="navbar">
+				<ul>
+					<li><a href="#page_home" data-icon="back" data-iconpossr="left">Back</a></li>
+
+				</ul>
+			</div>
+			<!-- /navbar -->
+
+		</div>
+		<!-- /header -->
+
+		<div data-role="content" class='content'>
+				<div id='usn'>
+					<label for="username">Username: </label> <input type="text"
+						id="username" name="username" class="required" />
+				</div>
+				<div id='pss'>
+					<label for="pass">Password: </label> <input type="password"
+						id="pass" name="pass" class="required" />
+				</div>
+				<br />
+				<div>
+					<button type="button" id="check" data-icon="arrow-r" data-iconpos="right">Check</button>
+				</div>
+				
+				<div>
+				<br/>
+				<button type="button" id="reset" data-icon="alert" data-iconpos="right">Reset Bucket</button>
+				</div>
+				
+		</div>
+		<!-- /content -->
+
+	</div>
+	<!-- /page -->
+</body>
+
+<script type="text/javascript" src="scripts/jquery-1.7.2.min.js"></script>
+
+<script>
+    
+        $(document).bind("mobileinit", function(){
+            $.mobile.loadingMessageTextVisible = true;
+            $.support.cors = true;
+            $.mobile.allowCrossDomainPages = true;
+            $.mobile.defaultPageTransition = 'none';
+        });
+
+    </script>
+<script type="text/javascript" src="scripts/cordova-1.8.1.min.js"></script>
+<script type="text/javascript" src="scripts/jquery.mobile-1.1.0.min.js"></script>
+<script type="text/javascript" src="scripts/jquery.blockUI.min.js"></script>
+<script type="text/javascript" src="scripts/jquery.mobile.simpledialog2.min.js"></script>
+<script type="text/javascript" src="scripts/main.js"></script>
+
+
+</html>
