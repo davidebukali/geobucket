@@ -1,0 +1,1 @@
+geobucket is an android phonegap project folder for the geobucket mobile app. The main source code for the project lies in the assets folder. You can reuse the assets folder inside a generic android phonegap project setup in eclipse.
