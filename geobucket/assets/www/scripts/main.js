@@ -4,6 +4,9 @@ var uid;
 var tt = "";
 var gis;
 var gps = false;
+var timeOut = 0;
+var gpsCheck;
+var gpsFlag;
 
 function onLoad(){
   
@@ -53,18 +56,10 @@ $("#stop").bind("click", function(event, ui){
   
   $.mobile.showToast("Stopping", 2000, function(){
     gps = false;
-    $("#stat").empty().html("<img src='images/off.gif' /><br/>Stopped Tracking");
+    $("#stat").empty().html("<img src='images/off.gif' /><br/>Stopped");
   });
   
-  /*
-  if (watchID != null) {
-    $.mobile.showToast("Stopping GPS", 2000, function(){
-      //gps = 0;
-      navigator.geolocation.clearWatch(watchID);
-      watchID = null;
-      
-    });
-  }*/
+  
 });
 $("#upload").live(
     "click",
@@ -84,9 +79,22 @@ $("#upload").live(
       } else {
         
         if(gps == false) {
+          $.blockUI({
+            message : '<h4><img src="images/ajax-loader.gif" /><br/>Checking Connection...</h4>',
+            css : {
+              top : ($(window).height()) / 3 + 'px',
+              left : ($(window).width() - 200) / 2 + 'px',
+              width : '200px',
+              backgroundColor : '#33CCFF',
+              '-webkit-border-radius' : '10px',
+              '-moz-border-radius' : '10px',
+              color : '#FFFFFF',
+              border : 'none'
+            }
+          });
           
         checkDrupalConnec().then(function(){
-          
+          $.unblockUI();
           checkDB().then(
               function(n){
                 
@@ -114,7 +122,7 @@ $("#upload").live(
                       if (localStorage.usr != "0" && localStorage.psw != "0" && localStorage.usr != undefined
                           && localStorage.psw != undefined) {
                         $.ajax({
-                          url : "http://192.168.38.147/drupal7/?q=my_services/user/login.json",
+                          url : "http://api.geobucket.org/?q=bucket/user/login.json",
                           type : 'post',
                           data : 'username=' + encodeURIComponent(localStorage.usr) + '&password='
                           + encodeURIComponent(localStorage.psw),
@@ -131,7 +139,34 @@ $("#upload").live(
                       } else if (localStorage.anonymous != "0" && localStorage.anonymous != undefined) {
                         upload(localStorage.anonymous);
                       } else {
-                        alert("Please Login at Settings");
+                    	  
+                    	  $('<div>').simpledialog2({
+                              mode : 'button',
+                              headerText : 'Info...',
+                              headerClose : true,
+                              buttonPrompt : "You are not logged in. Do you want to upload annonymously?",
+                              buttons : {
+                                'OK' : {
+                                  click : function(){
+                                    
+                                    window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, createAnonymous, failanonymousCreate);
+                                    upload(localStorage.anonymous);
+                                  }
+                                },
+                                'Cancel' : {
+                                  click : function(){
+                                    
+                                    // logout();
+                                    window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, deleteAnony, failDeleteAnony);
+                                    $.mobile.changePage("#page_login", "slide", true, false);
+                                    //alert("You must login to upload");
+                                  },
+                                  icon : "delete",
+                                  theme : "b"
+                                }
+                              }
+                            });
+                    	  
                         $.unblockUI();
                       }
                     });
@@ -142,7 +177,8 @@ $("#upload").live(
               });
           
         }).fail(function(){
-          alert("Please Ensure Drupal Site is Available")
+          $.unblockUI();
+          alert("GeoBucket Site is Not Available")
           
         });
       } else{
@@ -156,7 +192,7 @@ function checkDrupalConnec(){
   var d = $.Deferred();
   
   $.ajax({
-    url: "http://192.168.38.147/drupal7/?q=my_services/system/connect.json",
+    url: "http://api.geobucket.org/?q=bucket/system/connect.json",
     type: 'post',
     dataType: 'json',
     error: function (XMLHttpRequest, textStatus, errorThrown) {
@@ -192,7 +228,7 @@ function upload(username){
     }
   });
   createTags().then(function(linestring){
-    
+    //alert("Wkt is "+linestring);
     data = linestring.split(";");
     loginStatus().then(function(){
       
@@ -238,10 +274,10 @@ function sendData(id, tags, user){
   // BEGIN: drupal services node create login (warning: don't use https if you
   // don't have ssl setup)
   $.ajax({
-    url : "http://192.168.38.147/drupal7/?q=my_services/node.json",
+    url : "http://api.geobucket.org/?q=bucket/node.json",
     type : 'post',
-    data : 'node[type]=geobucket&node[title]=' + encodeURIComponent(title) + '&node[language]=und&node[field_geo][und][0][wkt]='
-    + encodeURIComponent(tags) + '&node[field_user][und][0][value]=' + encodeURIComponent(user),
+    data : 'node[type]=geobuckettype&node[title]=' + encodeURIComponent(title) + '&node[language]=und&node[field_gpstrace][und][0][wkt]='
+    + encodeURIComponent(tags),
     dataType : 'json',
     error : function(XMLHttpRequest, textStatus, errorThrown){
       
@@ -295,36 +331,14 @@ $("#check").live("click", function(event, ui){
       if (localStorage.usr != "0" && localStorage.psw != "0" && localStorage.usr != undefined && localStorage.psw != undefined) {
         login(localStorage.usr, localStorage.psw);
       } else {
+    	  
+    	
         login(u, p).then(function(x){
           
           alert(x);
         }).fail(function(h){
+          alert(h);
           
-          $('<div>').simpledialog2({
-            mode : 'button',
-            headerText : 'Ooops...',
-            headerClose : true,
-            buttonPrompt : h + ". Do you want to login in annonymously?",
-            buttons : {
-              'OK' : {
-                click : function(){
-                  
-                  window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, createAnonymous, failanonymousCreate);
-                  $.mobile.changePage("#page_home", "slide", true, false);
-                }
-              },
-              'Cancel' : {
-                click : function(){
-                  
-                  // logout();
-                  window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, deleteAnony, failDeleteAnony);
-                  alert("You must login to upload");
-                },
-                icon : "delete",
-                theme : "b"
-              }
-            }
-          });
         });
       }
     });
@@ -332,6 +346,7 @@ $("#check").live("click", function(event, ui){
     alert("Please Enter Username and Password")
   }
 });
+
 //PhoneGap is ready
 function onDeviceReady(){
   
@@ -339,7 +354,7 @@ function onDeviceReady(){
   var shortName = 'geoe';
   var version = '1.0';
   var displayName = 'geoe';
-  var maxSize = 50000;
+  var maxSize = 500000;
   db = openDatabase(shortName, version, displayName, maxSize);
   db.transaction(function(transaction){
     
@@ -355,15 +370,27 @@ function onDeviceReady(){
   
   var options = {
       enableHighAccuracy : true,
-      frequency : 3000
+      timeout : 5000,
+      frequency : 5000
   };
   
   watchID = navigator.geolocation.watchPosition(onSuccess, onError, options);
- 
+  
+  
+  gpsCheck = setTimeout(function(){
+	  if(timeOut <= 5){
+	    alert("Please Check GPS is On.")
+	    $("#stat").empty().html("StandBy");
+	  }
+	  
+	  
+  }, 50000 );
 }
+
 //onSuccess Geolocation
 function onSuccess(position){
-  //gps = gps + 1;
+  timeOut = timeOut + 1 ;
+  
   localStorage.lat = position.coords.latitude;
   localStorage.lon = position.coords.longitude;
   localStorage.time = position.timestamp;
@@ -376,12 +403,11 @@ function onSuccess(position){
   }
   
 }
+
 //onError Callback receives a PositionError object
 function onError(error){
-  $("#stat").empty().html("GPS Error...");
+  $("#stat").empty().html("Error");
   
-  //gps = 0;
-  //alert('GPS Error: ' + error.message + '. Restart GPS Tracking');
 }
 function saveCoords(la, lo, ti){
   
@@ -511,7 +537,7 @@ function createTags(){
           
           if (result.rows.length > 1) {
             for ( var i = 0; i < result.rows.length; i++) {
-              allTags = allTags + result.rows.item(i).lat + ' ' + result.rows.item(i).lon;
+              allTags = allTags + result.rows.item(i).lon + ' ' + result.rows.item(i).lat;
               if (i < (result.rows.length) - 1) {
                 allTags = allTags + ',';
               }
@@ -520,7 +546,7 @@ function createTags(){
             wkt = "LINESTRING (" + allTags + ");" + timestamp;
           } else if (result.rows.length == 1) {
             for ( var i = 0; i < result.rows.length; i++) {
-              allTags = allTags + result.rows.item(i).lat + ' ' + result.rows.item(i).lon;
+              allTags = allTags + result.rows.item(i).lon + ' ' + result.rows.item(i).lat;
               updateRecord(result.rows.item(i).id);
             }
             wkt = "POINT (" + allTags + ");" + timestamp;
@@ -539,7 +565,7 @@ function createTags(){
           
           if (result.rows.length > 1) {
             for ( var i = 0; i < result.rows.length; i++) {
-              allTags = allTags + result.rows.item(i).lat + ' ' + result.rows.item(i).lon;
+              allTags = allTags + result.rows.item(i).lon + ' ' + result.rows.item(i).lat;
               if (i < (result.rows.length) - 1) {
                 allTags = allTags + ',';
               }
@@ -584,7 +610,7 @@ function loginStatus(){
   
   var d = $.Deferred();
   $.ajax({
-    url : "http://192.168.38.147/drupal7/?q=my_services/system/connect.json",
+    url : "http://api.geobucket.org/?q=bucket/system/connect.json",
     type : 'post',
     dataType : 'json',
     error : function(XMLHttpRequest, textStatus, errorThrown){
@@ -609,7 +635,7 @@ function login(name, pass){
   
   var d = $.Deferred();
   $.ajax({
-    url : "http://192.168.38.147/drupal7/?q=my_services/user/login.json",
+    url : "http://api.geobucket.org/?q=bucket/user/login.json",
     type : 'post',
     data : 'username=' + encodeURIComponent(name) + '&password=' + encodeURIComponent(pass),
     dataType : 'json',
@@ -630,7 +656,7 @@ function login(name, pass){
 function logout(){
   
   $.ajax({
-    url : "http://192.168.38.147/drupal7/?q=my_services/user/logout.json",
+    url : "http://api.geobucket.org/?q=bucket/user/logout.json",
     type : 'post',
     dataType : 'json',
     error : function(XMLHttpRequest, textStatus, errorThrown){
