@@ -359,7 +359,7 @@ function onDeviceReady(){
   db.transaction(function(transaction){
     
     transaction.executeSql('CREATE TABLE IF NOT EXISTS gable ' + ' (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, '
-        + ' lat INTEGER NOT NULL, lon INTEGER NOT NULL, ' + ' tim INTEGER NOT NULL, submit INTEGER NOT NULL);');
+        + ' lat FLOAT(8) NOT NULL, lon FLOAT(8) NOT NULL, ' + ' tim INTEGER NOT NULL, submit INTEGER NOT NULL);');
   });
   
   //gis = "now";
@@ -370,8 +370,8 @@ function onDeviceReady(){
   
   var options = {
       enableHighAccuracy : true,
-      timeout : 5000,
-      frequency : 5000
+      //timeout : 5000,
+      maximumAge: 4000,
   };
   
   watchID = navigator.geolocation.watchPosition(onSuccess, onError, options);
@@ -379,27 +379,23 @@ function onDeviceReady(){
   
   gpsCheck = setTimeout(function(){
 	  if(timeOut <= 5){
-	    alert("Please Check GPS is On.")
-	    $("#stat").empty().html("StandBy");
+	    alert("Please Check that GPS is On.")
+	    //$("#stat").empty().html("StandBy");
 	  }
 	  
 	  
-  }, 50000 );
+  }, 90000 );
 }
 
 //onSuccess Geolocation
 function onSuccess(position){
   timeOut = timeOut + 1 ;
+  //alert("");
+  if(gps == true && position.coords.accuracy <= 3){
   
-  localStorage.lat = position.coords.latitude;
-  localStorage.lon = position.coords.longitude;
-  localStorage.time = position.timestamp;
-  
-  if(gps == true){
-  
-  countDB();
-  $("#stat").empty().html("<img src='images/tracking.gif' /><br/>Now tracking...");
-  saveCoords(localStorage.lat, localStorage.lon, localStorage.time);
+	  countDB();
+	  $("#stat").empty().html("<img src='images/tracking.gif' /><br/>Now tracking...");
+	  saveCoords(position.coords.latitude, position.coords.longitude, position.timestamp);
   }
   
 }
@@ -407,8 +403,8 @@ function onSuccess(position){
 //onError Callback receives a PositionError object
 function onError(error){
   $("#stat").empty().html("Error");
-  
 }
+
 function saveCoords(la, lo, ti){
   
   if (la != 0 && lo != 0 && la != "" && lo != "" && la != null && lo != null && la != undefined && lo != undefined
@@ -424,6 +420,7 @@ function saveCoords(la, lo, ti){
     });
   }
 }
+
 function countDB(){
   
   var d = $.Deferred();
@@ -530,10 +527,9 @@ function createTags(){
   checkDB().then(function(count){
     
     if (count >= 100) {
+    	
       db.transaction(function(transaction){
-        
-        transaction.executeSql('SELECT * FROM gable WHERE submit=? LIMIT 0, 100;', [ 0
-                                                                                     ], function(transaction, result){
+        transaction.executeSql('SELECT * FROM gable WHERE submit=? ORDER BY id LIMIT 100 ;', [ 0 ], function(transaction, result){
           
           if (result.rows.length > 1) {
             for ( var i = 0; i < result.rows.length; i++) {
@@ -560,8 +556,7 @@ function createTags(){
     } else {
       db.transaction(function(transaction){
         
-        transaction.executeSql('SELECT * FROM gable WHERE submit=?;', [ 0
-                                                                        ], function(transaction, result){
+        transaction.executeSql('SELECT * FROM gable WHERE submit=? ORDER BY id;', [ 0 ], function(transaction, result){
           
           if (result.rows.length > 1) {
             for ( var i = 0; i < result.rows.length; i++) {

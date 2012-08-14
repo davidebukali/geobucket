@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.geo.bucket"
-    android:versionCode="2"
+    android:versionCode="4"
     android:versionName="1.0" >
 
     <uses-sdk android:minSdkVersion="8" />
@@ -33,7 +33,7 @@
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name" >
         <activity
-            android:name="com.geobucket.GeobucketActivity"
+            android:name="com.geo.bucket.GeobucketActivity"
             android:label="@string/app_name" 
             android:configChanges="orientation|keyboardHidden">
             <intent-filter>
