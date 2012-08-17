@@ -4,12 +4,6 @@ var gps = false;
 var timeOut = 0;
 var gpsCheck;
 
-function onLoad(){
-
-	// Wait for PhoneGap to load
-	document.addEventListener("deviceready", onDeviceReady, false);
-	$("#stat").html("Standby");
-}
 
 $(document).ready(function(){
 
@@ -26,6 +20,10 @@ $(document).ready(function(){
 			border : 'none'
 		}
 	});
+	
+	// Wait for PhoneGap to load
+	document.addEventListener("deviceready", onDeviceReady, false);
+	$("#stat").html("Standby");
 	
 	$("#stop").hide();
 });
@@ -314,7 +312,6 @@ $("#reset").bind("click", function(event, ui){
 });
 
 $("#check").live("click", function(event, ui){
-
 	if ($("#username").val().length > 0 && $("#pass").val().length > 0) {
 		var u = $("#username").val();
 		var p = $("#pass").val();
@@ -364,6 +361,7 @@ $("#check").live("click", function(event, ui){
 	}
 });
 
+
 //PhoneGap is ready
 function onDeviceReady(){
 
@@ -387,7 +385,7 @@ function onDeviceReady(){
 
 	var options = {
 			enableHighAccuracy : true,
-			maximumAge: 4000
+			maximumAge: 5000
 	};
 
 	watchID = navigator.geolocation.watchPosition(onSuccess, onError, options);
@@ -403,16 +401,66 @@ function onDeviceReady(){
 	}, 90000 );
 }
 
+
+
+
 //onSuccess Geolocation
 function onSuccess(position){
 	timeOut = timeOut + 1 ;
-	if(gps == true && position.coords.accuracy <= 3){
-
-		countDB();
-		$("#stat").empty().html("<img src='images/tracking.gif' /><br/>Now tracking...");
-		saveCoords(position.coords.latitude, position.coords.longitude, position.timestamp);
+	var dist;
+	
+	if(gps == true && position.coords.accuracy <= 2){
+		
+		if(localStorage.lat != null && localStorage.lat != undefined){
+			dist = distance(localStorage.lat, position.coords.latitude, localStorage.lon, position.coords.longitude);
+			
+			if(dist > 2){
+				localStorage.lat = position.coords.latitude;
+				localStorage.lon = position.coords.longitude;
+				
+				countDB();
+				$("#stat").empty().html("<img src='images/tracking.gif' /><br/>Now tracking...");
+				saveCoords(localStorage.lat, localStorage.lon, position.timestamp);
+				
+			}	
+			
+		}else{
+			localStorage.lat = position.coords.latitude;
+			localStorage.lon = position.coords.longitude;
+			
+			countDB();
+			$("#stat").empty().html("<img src='images/tracking.gif' /><br/>Now tracking...");
+			saveCoords(localStorage.lat, localStorage.lon, position.timestamp);
+			
+		}
+	
 	}
 
+}
+
+function distance(lat1,lat2,lon1,lon2){
+	
+	var R = 6371; // km
+	var latdiff = (lat2 - lat1);
+	var londiff = (lon2 - lon1);
+	
+	var dLat = toRad(latdiff);
+	var dLon = toRad(londiff);
+	
+	var lat1 = toRad(lat1);
+	var lat2 = toRad(lat2);
+
+	var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+	        Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2); 
+	var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+	var d = R * c * 1000;
+	return d;
+	
+}
+
+function toRad(d){
+	var dist = Math.PI/180 * d;
+	return dist;
 }
 
 //onError Callback receives a PositionError object
@@ -519,6 +567,7 @@ function clearTable(){
 		}
 	});
 })(jQuery, this);
+
 function checkDB(){
 
 	var d = $.Deferred();
@@ -541,6 +590,8 @@ function checkDB(){
 	});
 	return d;
 }
+
+
 function createTags(){
 
 	var d = $.Deferred();
@@ -851,16 +902,3 @@ function failDeleteAnony(error){
 	alert("User and Pass Not Saved");
 	$.unblockUI();
 }
-/*
- * function saveRows(fileSystem){
- * 
- * fileSystem.root.getFile("rowcount.txt", { create : true, exclusive : false },
- * gotRowsFile, failRows); } function gotRowsFile(fileEntry){
- * 
- * fileEntry.createWriter(gotWrite, failAnony); } function gotWrite(writer){
- * 
- * writer.onwriteend = function(evt){ }; var auth = localStorage.savedCount;
- * writer.write(auth); } function failRows(error){
- * 
- * console.log(error.code); alert("User and Pass Not Saved"); $.unblockUI(); };
- */
