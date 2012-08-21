@@ -2,8 +2,6 @@ var db;
 var watchID = null;
 var gps = false;
 var timeOut = 0;
-var gpsCheck;
-
 
 $(document).ready(function(){
 
@@ -60,6 +58,18 @@ $("#stop").bind("click", function(event, ui){
 
 
 });
+
+
+$("#saveSettings").bind("click", function(event, ui){
+	$.mobile.showToast("Saving...", 1000, function(){
+		
+			//var acc = $( "#accuracy" ).val();
+			//var bat = $("#batch").val();
+			window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, saveSettings, failsaveSettings);
+	});
+
+});
+
 
 $("#upload").live(
 		"click",
@@ -194,9 +204,7 @@ function checkDrupalConnec(){
 		dataType: 'json',
 		error: function (XMLHttpRequest, textStatus, errorThrown) {
 			d.reject();
-			console.log(JSON.stringify(XMLHttpRequest));
-			console.log(JSON.stringify(textStatus));
-			console.log(JSON.stringify(errorThrown));
+			
 		},
 		success: function (data) {
 			d.resolve();
@@ -211,6 +219,8 @@ function upload(username){
 	var d = $.Deferred();
 	var name;
 	var data;
+	var batchSize;
+	
 	$.blockUI({
 		message : '<h4><img src="images/ajax-loader.gif" /><br/>Uploading...</h4>',
 		css : {
@@ -224,7 +234,13 @@ function upload(username){
 			border : 'none'
 		}
 	});
-	createTags().then(function(linestring){
+	if(localStorage.batch != undefined && localStorage.batch != null){
+	  batchSize = localStorage.batch;
+	}else{
+	  batchSize = 100;
+	}
+	
+	createTags(batchSize).then(function(linestring){
 		// alert("Wkt is "+linestring);
 		data = linestring.split(";");
 		loginStatus().then(function(){
@@ -380,6 +396,8 @@ function onDeviceReady(){
 	
 	window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, readPass, failreadPass);
 	window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, readAnonymous, failAnonymousread);
+	
+	window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, readSettings, failSettings);
 	countDB();
 	countUpload();
 
@@ -389,27 +407,15 @@ function onDeviceReady(){
 	};
 
 	watchID = navigator.geolocation.watchPosition(onSuccess, onError, options);
-
-
-	gpsCheck = setTimeout(function(){
-		if(timeOut <= 5){
-			alert("Please Check that GPS is On.")
-			
-		}
-
-
-	}, 90000 );
 }
-
-
-
 
 //onSuccess Geolocation
 function onSuccess(position){
 	timeOut = timeOut + 1 ;
 	var dist;
-	
-	if(gps == true && position.coords.accuracy <= 2){
+	if(localStorage.accuracy != undefined && localStorage.accuracy != null){
+		
+	if(gps == true && position.coords.accuracy <= localStorage.accuracy){
 		
 		if(localStorage.lat != null && localStorage.lat != undefined){
 			dist = distance(localStorage.lat, position.coords.latitude, localStorage.lon, position.coords.longitude);
@@ -434,6 +440,10 @@ function onSuccess(position){
 			
 		}
 	
+	}
+	}else{
+		alert("Accuracy is not set: "+localStorage.accuracy);
+		
 	}
 
 }
@@ -465,7 +475,18 @@ function toRad(d){
 
 //onError Callback receives a PositionError object
 function onError(error){
-	$("#stat").empty().html("Error");
+	var gpsoff = "The last location provider was disabled";
+	if(error.message == gpsoff){
+		alert("Please Check That GPS Switched is On");
+		
+		$("#stop").hide();
+		$("#start").show();
+
+		gps = false;
+		clearWatch();
+		$("#stat").empty().html("StandBy");
+	
+	}
 }
 
 //clear the watch that was started earlier
@@ -592,7 +613,7 @@ function checkDB(){
 }
 
 
-function createTags(){
+function createTags(batch){
 
 	var d = $.Deferred();
 	var allTags = '';
@@ -600,11 +621,9 @@ function createTags(){
 	var timestamp = new Date().valueOf().toString().substring(2);
 	checkDB().then(function(count){
 
-		if (count >= 100) {
-
+		if (count >= batch) {
 			db.transaction(function(transaction){
-				transaction.executeSql('SELECT * FROM gable WHERE submit=? ORDER BY id LIMIT 100 ;', [ 0 ], function(transaction, result){
-
+				transaction.executeSql('SELECT * FROM gable WHERE submit=? ORDER BY id LIMIT ' + batch +';', [ 0 ], function(transaction, result){
 					if (result.rows.length > 1) {
 						for ( var i = 0; i < result.rows.length; i++) {
 							allTags = allTags + result.rows.item(i).lon + ' ' + result.rows.item(i).lat;
@@ -768,7 +787,6 @@ function readPassAsText(file){
 }
 function failreadPass(evt){
 
-	console.log(evt.target.error.code);
 	alert("User and Pass Not read");
 }
 function savePasswords(fileSystem){
@@ -793,8 +811,6 @@ function savePassFileWriter(writer){
 	writer.write(auth);
 }
 function failsavePass(error){
-
-	console.log(error.code);
 	alert("User and Pass Not Saved");
 	$.unblockUI();
 }
@@ -818,8 +834,6 @@ function clearPassFileWriter(writer){
 	writer.write(auth);
 }
 function failclearPass(error){
-
-	console.log(error.code);
 	alert("Error Logging Out, Try again");
 	$.unblockUI();
 }
@@ -844,8 +858,6 @@ function anonymousFileWriter(writer){
 	writer.write(auth);
 }
 function failanonymousCreate(error){
-
-	console.log(error.code);
 	alert("User and Pass Not Saved");
 	$.unblockUI();
 }
@@ -872,8 +884,6 @@ function readAnonymousText(file){
 	reader.readAsText(file);
 }
 function failAnonymousread(evt){
-
-	console.log(evt.target.error.code);
 	alert("User and Pass Not read");
 }
 function deleteAnony(fileSystem){
@@ -897,8 +907,59 @@ function gotDeleteFileWrite(writer){
 	writer.write(auth);
 }
 function failDeleteAnony(error){
-
-	console.log(error.code);
 	alert("User and Pass Not Saved");
+	$.unblockUI();
+}
+
+function readSettings(fileSystem){
+	fileSystem.root.getFile("settings.txt", null, readSettingsFileEntry, failSettings);
+}
+function readSettingsFileEntry(fileEntry){
+
+	fileEntry.file(readSettingsFile, failSettings);
+}
+function readSettingsFile(file){
+
+	readAsText(file);
+}
+function readAsText(file){
+
+	var reader = new FileReader();
+	reader.onload = function(evt){
+
+		var text = evt.target.result;
+		var words = text.split(',');
+		localStorage.accuracy = words[0];
+		localStorage.batch = words[1];
+		//alert("Read accuracy and batch size: " + words[0] + " and " + words[1]);
+	};
+	reader.readAsText(file);
+}
+function failSettings(evt){
+	alert("Settings Not Read");
+}
+
+function saveSettings(fileSystem){
+	fileSystem.root.getFile("settings.txt", {
+		create : true,
+		exclusive : false
+	}, saveSettingsFileEntry, failsaveSettings);
+}
+function saveSettingsFileEntry(fileEntry){
+
+	fileEntry.createWriter(saveSettingsFileWriter, failsaveSettings);
+}
+function saveSettingsFileWriter(writer){
+	writer.onwriteend = function(evt){
+
+		localStorage.accuracy = $("#accuracy").val();
+		localStorage.batch = $("#batch").val();
+	};
+	var auth = $("#accuracy").val() + "," + $("#batch").val();
+	//alert("Just wrote; "+auth);
+	writer.write(auth);
+}
+function failsaveSettings(error){
+	alert("Accuracy and Batch Size Not Saved");
 	$.unblockUI();
 }
