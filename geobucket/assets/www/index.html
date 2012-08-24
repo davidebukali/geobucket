@@ -10,135 +10,215 @@
 <link rel="stylesheet" href="jqm-icon-pack-2.1.2-fa.css" />
 <link rel="stylesheet" href="jquery.mobile.simpledialog.min.css" />
 
+<STYLE type="text/css">
+#stopped {
+	COLOR: red;
+}
+
+#initial {
+	COLOR: orange;
+}
+
+#track, #green {
+    COLOR: green;
+}
+</STYLE>
+
 </head>
-<body onload="onLoad()">
+<body>
 
-	<div data-role="page" id="page_home" data-theme="a">
+  <div data-role="page" id="page_home" data-theme="a">
+    <div data-role="header" data-position="fixed" data-theme="a">
+      <h1 class="h1">Geo Bucket</h1>
+    </div>
+    <!-- /header -->
 
+    <div data-role="content" class='content'>
+      <fieldset class="ui-grid-a">
+        <div class="ui-block-a">
+          <div id="start">
+            <input type="button" id="start" value="Start"
+              data-iconpos="top" data-icon="play"><br />
+          </div>
+          <div id="stop">
+            <input type="button" id="stop" value="Stop"
+              data-iconpos="top" data-icon="remove-sign">
+          </div>
+        </div>
 
-		<div data-role="header" data-position="fixed" data-theme="a">
-			<h1 class="h1">Geo Bucket</h1>
+        <div class="ui-block-b">
+        <div id="upDiv">
+          <input type="button" id="upload" value="Upload"
+            data-iconpos="top" data-icon="upload"><br />
+        </div>
+        </div>
 
-			
+        <div class="ui-block-a">
+          <b>Status: </b>
+          <p id="stat"></p>
+        </div>
 
-		</div>
-		<!-- /header -->
+        <div class="ui-block-a">
+          <br /> Bucket Entries Captured: <b><p id="savedentries"></p>
+          </b>
+        </div>
 
-		<div data-role="content" class='content'>
+        <div class="ui-block-b">
+          <br /> Bucket Entries Uploaded: <b>
+            <p id="entry"></p>
+          </b><br />
 
-			<fieldset class="ui-grid-a">
-				
-				<div class="ui-block-a" >
-				<div id="start">
-					<input type="button" id="start" value="Start" data-iconpos="top" data-icon="play"><br />
-					</div>
-				<div id="stop"><input type="button" id="stop" value="Stop" data-iconpos="top" data-icon="remove-sign">
-					</div>		
-				</div>
-				
-				<div class="ui-block-b">
-					<input type="button" id="upload" value="Upload" data-iconpos="top" data-icon="upload"><br />
-				</div>
+        </div>
 
-                <div class="ui-block-a">
-                    
-                    <b>Status: </b><p id="stat"></p>
-                </div>
-                
-				<div class="ui-block-a">
-				<br />
-					Bucket Entries Captured:
-					<b><p id="savedentries"></p></b>
-				</div>
-				
-				<div class="ui-block-b">
-				<br />
-                    Bucket Entries Uploaded: <b>
-                    <p id="entry"></p></b><br />
-                    
-                </div>
-
-			</fieldset>
-			<!-- /grid-a -->
+      </fieldset>
+      <!-- /grid-a -->
 
 
 
-		</div>
-		<!-- /content -->
+    </div>
+    <!-- /content -->
 
-		<div data-role="footer" data-position="fixed" id="footer">
-<div data-role="navbar">
-                <ul>
-                    <li><a id="settings" data-iconpos="top" data-icon="gear">Settings</a></li>
-                </ul>
-            </div>
-            <!-- /navbar -->
-		</div>
-		<!-- /footer -->
-	</div>
-	<!-- /page -->
+    <div data-role="footer" data-position="fixed" id="footer">
+      <div data-role="navbar">
+        <ul>
+          <li><a id="settings" data-iconpos="top" data-icon="gear"> Settings</a>
+          </li>
+          <li><a data-iconpos="top" data-icon="info-sign" id="about"> About GeoBucket</a></li>
+        </ul>
+      </div>
+      <!-- /navbar -->
+    </div>
+    <!-- /footer -->
+  </div>
+  <!-- /page -->
 
 
-	<div data-role="page" id="page_login" data-theme="a">
+  <div data-role="page" id="page_login" data-theme="a">
+    <div data-role="header" data-position="fixed" data-theme="a">
+      <h1 class="h1">Settings</h1>
+      <div data-role="navbar">
+        <ul>
+          <li><a href="#page_home" data-icon="back"
+            data-iconpos="left">Back</a>
+          </li>
 
+        </ul>
+      </div>
+      <!-- /navbar -->
 
-		<div data-role="header" data-position="fixed" data-theme="a">
-			<h1 class="h1">Site Login</h1>
+    </div>
+    <!-- /header -->
 
-			<div data-role="navbar">
-				<ul>
-					<li><a href="#page_home" data-icon="back" data-iconpossr="left">Back</a></li>
+    <div data-role="content" class='content'>
 
-				</ul>
-			</div>
-			<!-- /navbar -->
+      <div data-role="collapsible-set">
 
-		</div>
-		<!-- /header -->
+        <div data-role="collapsible" data-collapsed="true">
+          <h3>GeoBucket Site Login</h3>
+          <div id='usn'>
+            <label for="username">Username: </label> <input type="text"
+              id="username" name="username" class="required" />
+          </div>
+          <div id='pss'>
+            <label for="pass">Password: </label> <input type="password"
+              id="pass" name="pass" class="required" />
+          </div>
+          <br />
+          <div>
+            <button type="button" id="check" data-icon="arrow-r"
+              data-iconpos="right">Check</button>
+          </div>
+        </div>
+        
+        <div data-role="collapsible">
+          <h3>Batch Size</h3>
+            <label for="batch">Upload Batch Size:</label>
+            <input type="range" name="batch" step="50" id="batch" value="100" min="100" max="500" data-highlight="true" />
+            <br/><br/>
+            <button type="button" id="saveSettings" data-icon="ok-sign"
+          data-iconpos="right">Save</button>
+        </div>
+        <div data-role="collapsible">
+          <h3>Reset Bucket</h3>
+            <div>
+        <button type="button" id="reset" data-icon="trash"
+          data-iconpos="right">Reset</button>
+        </div>
+        </div>
+      </div>
 
-		<div data-role="content" class='content'>
-				<div id='usn'>
-					<label for="username">Username: </label> <input type="text"
-						id="username" name="username" class="required" />
-				</div>
-				<div id='pss'>
-					<label for="pass">Password: </label> <input type="password"
-						id="pass" name="pass" class="required" />
-				</div>
-				<br />
-				<div>
-					<button type="button" id="check" data-icon="arrow-r" data-iconpos="right">Check</button>
-				</div>
-				
-				<div>
-				<br/>
-				<button type="button" id="reset" data-icon="alert" data-iconpos="right">Reset Bucket</button>
-				</div>
-				
-		</div>
-		<!-- /content -->
+      
 
-	</div>
-	<!-- /page -->
+    </div>
+    <!-- /content -->
+
+  </div>
+  <!-- /page -->
+  
+  
+  <div data-role="page" id="page_about" data-theme="a">
+    <div data-role="header" data-position="fixed" data-theme="a">
+      <h1 class="h1">About GeoBucket</h1>
+      <div data-role="navbar">
+        <ul>
+          <li><a href="#page_home" data-icon="back"
+            data-iconpos="left">Back</a>
+          </li>
+
+        </ul>
+      </div>
+      <!-- /navbar -->
+
+    </div>
+    <!-- /header -->
+
+    <div data-role="content" class='content'>
+      <div>
+      <p>GeoBucket is a mapping tool that works by geolocating latitude and longitude as you walk or drive 
+      and saves these points to a local database. The app then creates 
+      a .wkt file from the stored coordinates and uploads this to
+      the <a href="http://www.geobucket.org"> GeoBucket Website</a><br/></p>
+      <p>
+      The<b id="green"> Start </b>button turns on the GPS if its off and initiates saving of coordinates. Everytime
+      a point is saved the Bucket Entries Captured count is incremented by one.
+      The <b id="green">Stop</b> button turns off GPS and halts saving of coordinates. <br/></p>
+    <p>
+    <b id="green">Upload</b> pushes your traces to the GeoBucket website to be rendered on a map. Uploads
+    can either be anonymous or authenticated at the Settings option. Uploads are done in batches 
+    that can be adjusted from the Settings option.<br/></p>
+
+      <p>
+      <b id="green">Settings</b> provides an option to Login to the GeoBucket website for uploading trace points; You can also
+      reset the bucket which deletes the database record of all saved trace points that have already been uploaded and clears the Bucket Entries Uploaded count. It also logs you out of the Geobucket website. Reset willnot
+      delete database entries that have not been uploaded; You can also change the Batch Size for uploads which determines how many trace points will be included in an instance Upload.
+</p></div>
+            
+    </div>
+    <!-- /content -->
+
+  </div>
+  <!-- /page -->
+  
+  
 </body>
 
 <script type="text/javascript" src="scripts/jquery-1.7.2.min.js"></script>
 
 <script>
-    
-        $(document).bind("mobileinit", function(){
-            $.mobile.loadingMessageTextVisible = true;
-            $.support.cors = true;
-            $.mobile.allowCrossDomainPages = true;
-            $.mobile.defaultPageTransition = 'none';
-        });
-
-    </script>
-<script type="text/javascript" src="scripts/cordova-1.8.1.min.js"></script>
+	$(document).bind("mobileinit", function() {
+		$.mobile.loadingMessageTextVisible = true;
+		$.support.cors = true;
+		$.mobile.allowCrossDomainPages = true;
+		$.mobile.defaultPageTransition = 'none';
+	});
+</script>
+<script type="text/javascript" src="scripts/cordova-1.8.1.js"></script>
 <script type="text/javascript" src="scripts/jquery.mobile-1.1.0.min.js"></script>
 <script type="text/javascript" src="scripts/jquery.blockUI.min.js"></script>
-<script type="text/javascript" src="scripts/jquery.mobile.simpledialog2.min.js"></script>
+<script type="text/javascript"
+  src="scripts/jquery.mobile.simpledialog2.min.js"></script>
 <script type="text/javascript" src="scripts/main.js"></script>
+
 
 
 </html>
