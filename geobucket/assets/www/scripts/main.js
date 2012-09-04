@@ -6,6 +6,8 @@ var acc;
 var lineid = 1;
 var tempId;
 var idStep = 1;
+var R = 6371; // earth's radius in km
+var accuracy = 20;
 
 $(document).ready(function() {
   $
@@ -24,12 +26,12 @@ $(document).ready(function() {
     }
   });
   
-      // Wait for PhoneGap to load
-      document.addEventListener("deviceready", onDeviceReady, false);
-      $("#stat").html("Standby");
-      
-      $("#stop").hide();
-    });
+  // Wait for PhoneGap to load
+  document.addEventListener("deviceready", onDeviceReady, false);
+  $("#stat").html("Standby");
+  
+  $("#stop").hide();
+});
 
 $("#start").live(
     "click",
@@ -45,8 +47,8 @@ $("#start").live(
       if (watchID == null) {
         var options = {
             enableHighAccuracy : true,
-            maximumAge : 4000,
-            timeout : 3000
+            maximumAge : 5000,
+            timeout : 5000
         };
         watchID = navigator.geolocation
         .watchPosition(onSuccess,
@@ -68,11 +70,12 @@ $("#stop").bind("click", function(event, ui) {
   lineid = lineid + 1;
   
   window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, createLine,
-  failLineCreate);
-  
+      failLineCreate);
+  //alert("lineid: "+lineid);
   gps = false;
   clearWatch();
   $("#stat").empty().html("<p id='stopped'>Stopped</p>");
+  
   
 });
 
@@ -128,55 +131,55 @@ $("#check").live(
     function(event, ui) {
       if ($("#username").val().length > 0
           && $("#pass").val().length > 0) {
-        var u = $("#username").val();
-        var p = $("#pass").val();
-        
-        $
-        .blockUI({
-          message : '<h4><img src="images/ajax-loader.gif" /><br/>Signing In...</h4>',
-          css : {
-            top : ($(window).height()) / 3 + 'px',
-            left : ($(window).width() - 200) / 2
-            + 'px',
-            width : '200px',
-            backgroundColor : '#33CCFF',
-            '-webkit-border-radius' : '10px',
-            '-moz-border-radius' : '10px',
-            color : '#FFFFFF',
-            border : 'none'
-          }
-        });
-        
-        loginStatus().then(function() {
-          
-          alert("You are already logged in");
-          $.unblockUI();
-        }).fail(
-            function(h) {
-              
-              if (localStorage.usr != "0"
-                && localStorage.psw != "0"
-                  && localStorage.usr != undefined
-                  && localStorage.psw != undefined) {
-                login(localStorage.usr,
-                    localStorage.psw).then(
-                        function(g) {
-                          $.unblockUI();
-                          
-                        });
-              } else {
-                
-                login(u, p).then(function(x) {
-                  
-                  alert(x);
-                  $.unblockUI();
-                }).fail(function(h) {
-                  alert(h);
-                  $.unblockUI();
-                  
-                });
+            var u = $("#username").val();
+            var p = $("#pass").val();
+            
+            $
+            .blockUI({
+              message : '<h4><img src="images/ajax-loader.gif" /><br/>Signing In...</h4>',
+              css : {
+                top : ($(window).height()) / 3 + 'px',
+                left : ($(window).width() - 200) / 2
+                + 'px',
+                width : '200px',
+                backgroundColor : '#33CCFF',
+                '-webkit-border-radius' : '10px',
+                '-moz-border-radius' : '10px',
+                color : '#FFFFFF',
+                border : 'none'
               }
             });
+            
+            loginStatus().then(function() {
+              
+              alert("You are already logged in");
+              $.unblockUI();
+            }).fail(
+                function(h) {
+                  
+                  if (localStorage.usr != "0"
+                    && localStorage.psw != "0"
+                      && localStorage.usr != undefined
+                      && localStorage.psw != undefined) {
+                        login(localStorage.usr,
+                            localStorage.psw).then(
+                                function(g) {
+                                  $.unblockUI();
+                                  
+                                });
+                  } else {
+                    
+                    login(u, p).then(function(x) {
+                      
+                      alert(x);
+                      $.unblockUI();
+                    }).fail(function(h) {
+                      alert(h);
+                      $.unblockUI();
+                      
+                    });
+                  }
+                });
       } else {
         alert("Please Enter Username and Password");
         
@@ -222,16 +225,18 @@ $("#upload").live(
         checkDrupalConnec()
         .then(
             function() {
-              $.unblockUI();
+              
               checkDB()
               .then(
                   function(n) {
+                    
                     tempId = parseInt(localStorage.line, 10);
+                    //alert("tempId is: "+tempId);
                     
                     loginStatus()
                     .then(
                         function() {
-                          
+                          $.unblockUI();
                           upload(localStorage.usr);
                         })
                         .fail(
@@ -241,75 +246,75 @@ $("#upload").live(
                                 && localStorage.psw != "0"
                                   && localStorage.usr != undefined
                                   && localStorage.psw != undefined) {
-                                $
-                                .ajax({
-                                  url : "http://api.geobucket.org/?q=bucket/user/login.json",
-                                  type : 'post',
-                                  data : 'username='
-                                    + encodeURIComponent(localStorage.usr)
-                                    + '&password='
-                                    + encodeURIComponent(localStorage.psw),
-                                    dataType : 'json',
-                                    error : function(
-                                        XMLHttpRequest,
-                                        textStatus,
-                                        errorThrown) {
-                                      
-                                      alert('Failed to login '
-                                          + errorThrown);
-                                    },
-                                    success : function(
-                                        data) {
-                                      
-                                      upload(localStorage.usr);
-                                    }
-                                });
+                                    $
+                                    .ajax({
+                                      url : "http://api.geobucket.org/?q=bucket/user/login.json",
+                                      type : 'post',
+                                      data : 'username='
+                                        + encodeURIComponent(localStorage.usr)
+                                        + '&password='
+                                        + encodeURIComponent(localStorage.psw),
+                                        dataType : 'json',
+                                        error : function(
+                                            XMLHttpRequest,
+                                            textStatus,
+                                            errorThrown) {
+                                              
+                                              alert('Failed to login '
+                                                  + errorThrown);
+                                        },
+                                        success : function(
+                                            data) {
+                                              
+                                              upload(localStorage.usr);
+                                        }
+                                    });
                               } else if (localStorage.anonymous != "0"
                                 && localStorage.anonymous != undefined) {
-                                upload(localStorage.anonymous);
+                                  upload(localStorage.anonymous);
                               } else {
                                 
                                 $(
                                 '<div>')
                                 .simpledialog2(
-                                    {
-                                      mode : 'button',
-                                      headerText : 'Info...',
-                                      headerClose : true,
-                                      buttonPrompt : "You are not logged in. Do you want to upload annonymously?",
-                                      buttons : {
-                                        'OK' : {
-                                          click : function() {
-                                            
-                                            window
-                                            .requestFileSystem(
-                                                LocalFileSystem.PERSISTENT,
-                                                0,
-                                                createAnonymous,
-                                                failanonymousCreate);
-                                            upload(localStorage.anonymous);
-                                          }
-                                        },
-                                        'Cancel' : {
-                                          click : function() {
-                                            window
-                                            .requestFileSystem(
-                                                LocalFileSystem.PERSISTENT,
-                                                0,
-                                                deleteAnony,
-                                                failDeleteAnony);
-                                            $.mobile
-                                            .changePage(
-                                                "#page_login",
-                                                "slide",
-                                                true,
-                                                false);
+                                      {
+                                        mode : 'button',
+                                        headerText : 'Info...',
+                                        headerClose : true,
+                                        buttonPrompt : "You are not logged in. Do you want to upload annonymously?",
+                                        buttons : {
+                                          'OK' : {
+                                            click : function() {
+                                              
+                                              window
+                                              .requestFileSystem(
+                                                  LocalFileSystem.PERSISTENT,
+                                                  0,
+                                                  createAnonymous,
+                                                  failanonymousCreate);
+                                              upload(localStorage.anonymous);
+                                            }
                                           },
-                                          icon : "delete",
-                                          theme : "b"
+                                          'Cancel' : {
+                                            click : function() {
+                                              window
+                                              .requestFileSystem(
+                                                  LocalFileSystem.PERSISTENT,
+                                                  0,
+                                                  deleteAnony,
+                                                  failDeleteAnony);
+                                              $.mobile
+                                              .changePage(
+                                                  "#page_login",
+                                                  "slide",
+                                                  true,
+                                                  false);
+                                            },
+                                            icon : "delete",
+                                            theme : "b"
+                                          }
                                         }
-                                      }
-                                    });
+                                      });
                                 
                                 $
                                 .unblockUI();
@@ -320,6 +325,7 @@ $("#upload").live(
                       function() {
                         
                         alert("No Data Left In Database.");
+                        $.unblockUI();
                         
                       });
               
@@ -379,51 +385,58 @@ function upload(username) {
     batchSize = 100;
   }
   
-  createTags(batchSize).then(function(linestring) {
-    
-    data = linestring.split(";");
-    
-    alert("Tags are: "+data[0]);
-   
-    loginStatus().then(function() {
+  checkDBLines(tempId).then(function(h){
+    createTags(batchSize, h).then(function(linestring) {
       
-      name = localStorage.usr;
-    }).fail(function() {
-      
-      name = "Anonymous";
-    });
-    
-    
-    sendData(data[1], data[0], username).then(function() {
-      countUpload();
-      
-      countDB().then(function(rows) {
+      data = linestring.split(";"); 
+      loginStatus().then(function() {
         
-        if (rows > 0) {
-          checkDBLines(tempId).then(function(){
-            upload(name);
-            countUpload();
-            countDB();
-            
-            
-          }).fail(function(){
-            tempId =  tempId - 1;
-            upload(name);
-            countUpload();
-            countDB();
-          });
-          
-        } else {
-          alert("Upload Complete");
-          $.unblockUI();
-        }
+        name = localStorage.usr;
+      }).fail(function() {
+        
+        name = "Anonymous";
       });
       
+      //alert("The tags are: "+ data[0]);
       
-    }).fail(function(err) {
+      sendData(data[1], data[0], username).then(function() {
+        countUpload();
+        
+        countDB().then(function(rows) {
+          
+          if (rows > 0) {
+            checkDBLines(tempId).then(function(){
+              upload(name);
+              countUpload();
+              countDB();
+              //alert("inside success TempId is: "+tempId);
+              
+            }).fail(function(){
+              tempId =  tempId - 1;
+              upload(name);
+              countUpload();
+              countDB();
+              //alert("inside fail TempId is: "+tempId);
+            });
+            
+          } else {
+            alert("Upload Complete");
+            $.unblockUI();
+          }
+        });
+        
+        
+      }).fail(function(err) {
+        
+        alert("Data Not Uploaded, " + err);
+        $.unblockUI();
+        
+      });
       
-      alert("Data Not Uploaded, " + err);
-      $.unblockUI();
+    }).fail(function(v) {
+      alert("Wkt-LineString not created");
+      $.unblockUI(); 
+      
       
     });
     
@@ -431,31 +444,26 @@ function upload(username) {
     
   }).fail(function(v) {
     
-    if(v == "Not Found"){
-      countDB().then(function(rows) {
-        
-        if (rows > 0) {
-       
-          upload(name);
-        
-          
-        } else {
-          alert("Upload Complete");
-          $.unblockUI();
-        }
-      });
+    countDB().then(function(rows) {
       
-    }else{
-      alert("Wkt-LineString not created");
-      $.unblockUI(); 
-      
-    }
+      if (rows > 0) {
+        tempId =  tempId - 1;
+        upload(name);
+       // alert("fail checkDb tempid is: "+tempId);
+        
+      } else {
+        alert("Upload Complete");
+        $.unblockUI();
+      }
+    });
+    
     
   });
   
+  
   return d;
 }
-function sendData(id, tags, user) {
+function (id, tags, user) {
   
   var d = $.Deferred();
   var title = "GeoBucket " + id;
@@ -513,7 +521,9 @@ function onDeviceReady() {
   window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, readLine,
       failLineread);
   
- if(localStorage.line == undefined){
+  tempId = parseInt(localStorage.line, 10);
+  
+  if(localStorage.line == undefined){
     localStorage.line = 1; 
   }else{
     lineid = parseInt(localStorage.line, 10);
@@ -524,7 +534,7 @@ function onDeviceReady() {
   
   var options = {
       enableHighAccuracy : true,
-      timeout : 10000,
+      timeout : 5000,
       maximumAge : 5000
   };
   
@@ -537,21 +547,51 @@ function onSuccess(position) {
   if (localStorage.accuracy != undefined && localStorage.accuracy != null) {
     accuracy = localStorage.accuracy;
   } else {
-    accuracy = 100;
+    accuracy = 20;
   }
- 
+  
   acc = position.coords.accuracy;
   $("#acc").empty().html("("+acc+"m) to atleast "+accuracy+" meters.");
   
+  if (localStorage.lat != undefined && localStorage.lon != undefined) {
+   
   if (gps == true && position.coords.accuracy <= accuracy) {
-        localStorage.track = true;
-        countDB();
-        $("#stat")
-        .empty()
-        .html(
-        "<p id='track'>Now tracking...</p>");
-        saveCoords(position.coords.latitude, position.coords.longitude,
-            position.timestamp, lineid);
+    var m = calcDist(localStorage.lat,position.coords.latitude,localStorage.lon,position.coords.longitude);
+    if (m >= 2.0) {
+    
+    localStorage.lat = position.coords.latitude;
+    localStorage.lon = position.coords.longitude;
+    
+    //alert("The distance is: "+m);
+    localStorage.track = true;
+    saveCoords(position.coords.latitude, position.coords.longitude,
+        position.timestamp, lineid);
+    countDB();
+    $("#stat")
+    .empty()
+    .html(
+        "<p id='track'>Now Tracking Points...</p>");
+    }
+    
+  }
+    
+  
+  }else{
+    
+    if (gps == true && position.coords.accuracy <= accuracy) {
+      localStorage.lat = position.coords.latitude;
+      localStorage.lon = position.coords.longitude;
+      
+      localStorage.track = true;
+      saveCoords(position.coords.latitude, position.coords.longitude,
+          position.timestamp, lineid);
+      countDB();
+      $("#stat")
+      .empty()
+      .html(
+          "<p id='track'>Now Tracking Points...</p>");
+      
+    }
     
   }
   
@@ -575,14 +615,14 @@ function onError(error) {
   }else if(error.code == error.PERMISSION_DENIED && localStorage.track != undefined){
     lineid = lineid + 1;
     window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, createLine,
-    failLineCreate);
-    alert("Error PERMISSION_DENIED: "+error.message+", "+error.code);
+        failLineCreate);
+    //alert("Error PERMISSION_DENIED: "+error.message+", "+error.code);
     
   }else if(error.message == gpsoff && localStorage.track != undefined){
     lineid = lineid + 1;
     window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, createLine,
-    failLineCreate);
-    alert("Error gpsoff: "+error.code);
+        failLineCreate);
+    //alert("Error gpsoff: "+error.code);
     
   }
 }
@@ -595,23 +635,57 @@ function clearWatch() {
   }
 }
 
+
+function distance(lat1,lat2,lon1,lon2){
+  var dLat = toRad((lat2-lat1));
+  var dLon = toRad((lon2-lon1));
+  var lat1 = toRad(lat1);
+  var lat2 = toRad(lat2);
+
+  var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2); 
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  var d = R * c * 1000;
+  return d;
+  
+}
+
+
+function toRad(x){
+  return x * Math.PI / 180;
+}
+
+
+function calcDist(lat1,lat2,lon1,lon2){
+  var lat1 = toRad(lat1);
+  var lat2 = toRad(lat2);
+  var lon1 = toRad(lon1);
+  var lon2 = toRad(lon2);
+  var y = Math.acos(Math.sin(lat1)*Math.sin(lat2) + 
+      Math.cos(lat1)*Math.cos(lat2) *
+      Math.cos(lon2-lon1)) * R;
+  return y * 1000;
+  
+}
+
+
 function saveCoords(la, lo, ti, id) {
   
   if (la != 0 && lo != 0 && la != "" && lo != "" && la != null && lo != null
       && la != undefined && lo != undefined && ti != undefined) {
-    db
-    .transaction(function(transaction) {
-      
-      transaction
-      .executeSql(
-          'INSERT INTO gable (lat, lon, tim, submit, lineId) VALUES (?, ?, ?, ?, ?);',
-          [ la, lo, ti, 0, id], function(transaction,
-              result) {
-            
-          }, function(transaction, error) {
-            
-          });
-    });
+        db
+        .transaction(function(transaction) {
+          
+          transaction
+          .executeSql(
+              'INSERT INTO gable (lat, lon, tim, submit, lineId) VALUES (?, ?, ?, ?, ?);',
+              [ la, lo, ti, 0, id], function(transaction,
+                  result) {
+                    
+              }, function(transaction, error) {
+                
+              });
+        });
   }
 }
 
@@ -623,14 +697,14 @@ function countDB() {
     
     transaction.executeSql('SELECT * FROM gable where submit = ?;', [ 0 ],
         function(transaction, result) {
-      
-      r = result.rows.length;
-      if (r > 0) {
-        $("#savedentries").html(r);
-      } else {
-        $("#savedentries").html("_");
-      }
-      d.resolve(r);
+          
+          r = result.rows.length;
+          if (r > 0) {
+            $("#savedentries").html(r);
+          } else {
+            $("#savedentries").html("_");
+          }
+          d.resolve(r);
     }, function(transaction, error) {
       
       alert("Database Error: " + error);
@@ -645,13 +719,13 @@ function countUpload() {
     
     transaction.executeSql('SELECT * FROM gable where submit = ?;', [ 1 ],
         function(transaction, result) {
-      
-      r = result.rows.length;
-      if (r > 0) {
-        $("#entry").html(r);
-      } else {
-        $("#entry").html("_");
-      }
+          
+          r = result.rows.length;
+          if (r > 0) {
+            $("#entry").html(r);
+          } else {
+            $("#entry").html("_");
+          }
     }, function(transaction, error) {
       
       alert("Database Error: " + error);
@@ -664,7 +738,7 @@ function clearTable() {
     
     tx.executeSql("DELETE FROM gable WHERE submit=?;", [ 1 ], function(
         transaction, result) {
-      
+          
     }, function(transaction, error) {
       
       alert("Database error Table not Cleared: " + error);
@@ -700,43 +774,13 @@ function checkDB() {
     
     transaction.executeSql('SELECT * FROM gable where submit = ?;', [ 0 ],
         function(transaction, result) {
-      
-      r = result.rows.length;
-      if (r > 0) {
-        d.resolve(r);
-      } else {
-        d.reject(r);
-      }
-    }, function(transaction, error) {
-      
-      alert("Database Error: " + error);
-    });
-  });
-  return d;
-}
-
-
-function printDB() {
-  
-  var d = $.Deferred();
-  var r = "";
-  var allTags = "";
-  db.transaction(function(transaction) {
-    
-    transaction.executeSql('select * from gable where submit=? and lineId=? order by tim, id;', [ 0, tempId ],
-        function(transaction, result) {
           
-          for ( var i = 0; i < result.rows.length; i++) {
-            allTags = allTags + "LineID: "+ result.rows.item(i).lineId
-            + " Lat: "
-            + result.rows
-            .item(i).lat +" id: "+ result.rows
-            .item(i).id;
-            
+          r = result.rows.length;
+          if (r > 0) {
+            d.resolve(r);
+          } else {
+            d.reject(r);
           }
-          alert("DB has: "+allTags);
-      
-      
     }, function(transaction, error) {
       
       alert("Database Error: " + error);
@@ -755,15 +799,14 @@ function checkDBLines(id) {
     
     transaction.executeSql('select * from gable where submit=? and lineId=? order by tim, id;', [ 0, id ],
         function(transaction, result) {
-      
-      r = result.rows.length;
-      if (r > 0) {
-        d.resolve(r);
-      } else {
-        d.reject(r);
-      }
-      
-      //alert("inside checkDBlines "+r);
+          
+          r = result.rows.length;
+          if (r > 0) {
+            d.resolve(r);
+          } else {
+            d.reject(r);
+          }
+          
     }, function(transaction, error) {
       
       alert("Database Error: " + error);
@@ -773,135 +816,125 @@ function checkDBLines(id) {
 }
 
 
-
-function createTags(batch) {
+function createTags(batch, h) {
   var d = $.Deferred();
   var allTags = '';
   var wkt;
   var timestamp = new Date().valueOf().toString().substring(2);
   
-      checkDBLines(tempId).then(function(h) {
-       
-        if (h >= batch) {
-          alert("h is greater than or = batch " +h+" and batch is "+batch);
-               db
-               .transaction(function(transaction) {
-                 transaction
-                 .executeSql(
-                     'SELECT * FROM gable WHERE submit=? and lineId =? ORDER BY tim, id LIMIT '
-                     + batch + ';',
-                     [ 0,  tempId],
-                     function(transaction,
-                         result) {
-                       if (result.rows.length > 1) {
-                         for ( var i = 0; i < result.rows.length; i++) {
-                           allTags = allTags
-                           + result.rows
-                           .item(i).lon
-                           + ' '
-                           + result.rows
-                           .item(i).lat;
-                           if (i < (result.rows.length) - 1) {
-                             allTags = allTags
-                             + ',';
-                           }
-                           updateRecord(result.rows
-                               .item(i).id);
-                         }
-                         wkt = "LINESTRING ("
-                           + allTags 
-                           + ");"
-                           + timestamp;
-                       } else if (result.rows.length == 1) {
-                         for ( var i = 0; i < result.rows.length; i++) {
-                           allTags = allTags
-                           + result.rows
-                           .item(i).lon
-                           + ' '
-                           + result.rows
-                           .item(i).lat;
-                           updateRecord(result.rows
-                               .item(i).id);
-                         }
-                         wkt = "POINT ("
-                           + allTags
-                           + ");"
-                           + timestamp;
-                       }
-                       d.resolve(wkt);
-                     }, function(
-                         transaction,
-                         error) {
-                       
-                       d.reject(error);
-                     });
-               });
-               
-   
-        } else {
-          alert("h is lesser than = batch"+h+" and batch is "+batch);
-          db
-          .transaction(function(transaction) {
-            
-            transaction
-            .executeSql(
-                'SELECT * FROM gable WHERE submit=? and lineId =? ORDER BY tim, id;',
-                [ 0, tempId ],
-                function(transaction,
-                    result) {
-                  
-                  if (result.rows.length > 1) {
-                    for ( var i = 0; i < result.rows.length; i++) {
+  if (h >= batch) {
+    
+    db
+    .transaction(function(transaction) {
+      transaction
+      .executeSql(
+          'SELECT * FROM gable WHERE submit=? and lineId =? ORDER BY tim, id LIMIT '
+          + batch + ';',
+          [ 0,  tempId],
+          function(transaction,
+              result) {
+                if (result.rows.length > 1) {
+                  for ( var i = 0; i < result.rows.length; i++) {
+                    allTags = allTags
+                    + result.rows
+                    .item(i).lon
+                    + ' '
+                    + result.rows
+                    .item(i).lat;
+                    if (i < (result.rows.length) - 1) {
                       allTags = allTags
-                      + result.rows
-                      .item(i).lon
-                      + ' '
-                      + result.rows
-                      .item(i).lat;
-                      if (i < (result.rows.length) - 1) {
-                        allTags = allTags
-                        + ',';
-                      }
-                      updateRecord(result.rows
-                          .item(i).id);
+                      + ',';
                     }
-                    wkt = "LINESTRING ("
-                      + allTags
-                      + ");"
-                      + timestamp;
-                  } else if (result.rows.length == 1) {
-                    for ( var i = 0; i < result.rows.length; i++) {
-                      allTags = allTags
-                      + result.rows
-                      .item(i).lat
-                      + ' '
-                      + result.rows
-                      .item(i).lon;
-                      updateRecord(result.rows
-                          .item(i).id);
-                    }
-                    wkt = "POINT ("
-                      + allTags
-                      + ");"
-                      + timestamp;
+                    updateRecord(result.rows
+                        .item(i).id);
                   }
-                  d.resolve(wkt);
-                }, function(
-                    transaction,
-                    error) {
-                  
-                  d.reject(error);
-                });
+                  wkt = "LINESTRING ("
+                    + allTags 
+                    + ");"
+                    + timestamp;
+                } else if (result.rows.length == 1) {
+                  for ( var i = 0; i < result.rows.length; i++) {
+                    allTags = allTags
+                    + result.rows
+                    .item(i).lon
+                    + ' '
+                    + result.rows
+                    .item(i).lat;
+                    updateRecord(result.rows
+                        .item(i).id);
+                  }
+                  wkt = "POINT ("
+                    + allTags
+                    + ");"
+                    + timestamp;
+                }
+                d.resolve(wkt);
+          }, function(
+              transaction,
+              error) {
+                
+                d.reject(error);
           });
-          
-        }
-           
-      }).fail(function(){
-        
-        d.reject("Not Found");
-        
-      });
-     
+    });
+    
+  } else {
+    
+    db
+    .transaction(function(transaction) {
+      
+      transaction
+      .executeSql(
+          'SELECT * FROM gable WHERE submit=? and lineId =? ORDER BY tim, id;',
+          [ 0, tempId ],
+          function(transaction,
+              result) {
+                
+                if (result.rows.length > 1) {
+                  for ( var i = 0; i < result.rows.length; i++) {
+                    allTags = allTags
+                    + result.rows
+                    .item(i).lon
+                    + ' '
+                    + result.rows
+                    .item(i).lat;
+                    if (i < (result.rows.length) - 1) {
+                      allTags = allTags
+                      + ',';
+                    }
+                    updateRecord(result.rows
+                        .item(i).id);
+                  }
+                  wkt = "LINESTRING ("
+                    + allTags
+                    + ");"
+                    + timestamp;
+                } else if (result.rows.length == 1) {
+                  for ( var i = 0; i < result.rows.length; i++) {
+                    allTags = allTags
+                    + result.rows
+                    .item(i).lat
+                    + ' '
+                    + result.rows
+                    .item(i).lon;
+                    updateRecord(result.rows
+                        .item(i).id);
+                  }
+                  wkt = "POINT ("
+                    + allTags
+                    + ");"
+                    + timestamp;
+                }
+                d.resolve(wkt);
+          }, function(
+              transaction,
+              error) {
+                
+                d.reject(error);
+          });
+    });
+    
+  }
+  
   return d;
 }
 //Update record on the fly
@@ -1014,7 +1047,7 @@ function readPassAsText(file) {
     var words = text.split(',');
     localStorage.usr = words[0];
     localStorage.psw = words[1];
-   
+    // alert("Read Pass and user: " + words[0] + " and " + words[1]);
   };
   reader.readAsText(file);
 }
@@ -1111,6 +1144,8 @@ function readAnonymousText(file) {
   
   var reader = new FileReader();
   reader.onload = function(evt) {
+    
+    // alert("read annonymous: " + evt.target.result);
     localStorage.anonymous = evt.target.result;
   };
   reader.readAsText(file);
@@ -1160,9 +1195,11 @@ function readAsText(file) {
   var reader = new FileReader();
   reader.onload = function(evt) {
     
-   
+    //var text = evt.target.result;
+    //var words = text.split(',');
+    //localStorage.accuracy = words[0];
     localStorage.batch = evt.target.result;
-    
+    //alert("Read accuracy and batch size: " + words[0] + " and " + words[1]);
   };
   reader.readAsText(file);
 }
@@ -1182,16 +1219,17 @@ function saveSettingsFileEntry(fileEntry) {
 }
 function saveSettingsFileWriter(writer) {
   writer.onwriteend = function(evt) {
- 
+    
+    //localStorage.accuracy = $("#accuracy").val();
     localStorage.batch = $("#batch").val();
   };
- 
+  // var auth = $("#accuracy").val() + "," + $("#batch").val();
   var auth = $("#batch").val();
-
+  //alert("Just wrote; "+auth);
   writer.write(auth);
 }
 function failsaveSettings(error) {
-  
+  //alert("Batch Size Not Saved");
   $.unblockUI();
 }
 
@@ -1209,14 +1247,15 @@ function lineFileEntry(fileEntry) {
 function lineFileWriter(writer) {
   
   writer.onwriteend = function(evt) {
-  
-    localStorage.line = lineid - 1;
+    
+    localStorage.line = lineid;
+    //alert("Saved line id: "+lineid);
   };
-  var auth = localStorage.line;
+  var auth = lineid;
   writer.write(auth);
 }
 function failLineCreate(error) {
-  
+  //alert("Line Id Not saved");
   $.unblockUI();
 }
 function readLine(fileSystem) {
@@ -1237,11 +1276,12 @@ function readLineText(file) {
   var reader = new FileReader();
   reader.onload = function(evt) {
     
-   
+    
     localStorage.line = evt.target.result;
+    // alert("read line: "+localStorage.line);
   };
   reader.readAsText(file);
 }
 function failLineread(evt) {
-  
+  //alert("Line Id not read");
 }
