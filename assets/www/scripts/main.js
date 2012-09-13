@@ -1,13 +1,12 @@
 var db;
 var watchID = null;
 var gps = false;
-var accuracy;
-var acc;
+var acc = 0;
 var lineid = 1;
 var tempId;
-var idStep = 1;
 var R = 6371; // earth's radius in km
-var accuracy = 20;
+var accuracy = 70;
+var track = false;
 
 $(document).ready(function() {
   $
@@ -33,7 +32,7 @@ $(document).ready(function() {
   $("#stop").hide();
 });
 
-$("#start").live(
+$("#start").bind(
     "click",
     function(event, ui) {
       
@@ -54,10 +53,15 @@ $("#start").live(
         .watchPosition(onSuccess,
             onError, options);
       }
+      
+      lineid = lineid + 1;
+      window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, createLine,
+          failLineCreate);
+      
       $("#stat")
       .empty()
       .html(
-      "<p id='initial'>Please wait, improving GPS Accuracy <a id='acc'></a>...</p>");
+      "<p id='initial'>Please wait, improving GPS Accuracy <a id='accy'></a>...</p>");
       
     });
 
@@ -67,14 +71,13 @@ $("#stop").bind("click", function(event, ui) {
   $("#start").show();
   
   $("#upDiv").show();
-  lineid = lineid + 1;
   
-  window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, createLine,
-      failLineCreate);
   //alert("lineid: "+lineid);
   gps = false;
+  
+  track = false;
   clearWatch();
-  $("#stat").empty().html("<p id='stopped'>Stopped</p>");
+  $("#stat").empty().html("<p id='stopped'>Stopped Tracking</p>");
   
   
 });
@@ -204,8 +207,7 @@ $("#upload").live(
       if ((states[networkState] == 'No network connection') || (states[networkState] == 'Unknown connection')) {
         alert('Please check your phone internet connection is working and Try Again.');
       } else {
-        
-        
+         
         $
         .blockUI({
           message : '<h4><img src="images/ajax-loader.gif" /><br/>Checking Connection...</h4>',
@@ -248,7 +250,7 @@ $("#upload").live(
                                   && localStorage.psw != undefined) {
                                     $
                                     .ajax({
-                                      url : "http://api.geobucket.org/?q=bucket/user/login.json",
+                                      url : "http://192.168.38.100/geobucket/?q=bucket/user/login.json",
                                       type : 'post',
                                       data : 'username='
                                         + encodeURIComponent(localStorage.usr)
@@ -343,7 +345,7 @@ function checkDrupalConnec() {
   var d = $.Deferred();
   
   $.ajax({
-    url : "http://api.geobucket.org/?q=bucket/system/connect.json",
+    url : "http://192.168.38.100/geobucket/?q=bucket/system/connect.json",
     type : 'post',
     dataType : 'json',
     error : function(XMLHttpRequest, textStatus, errorThrown) {
@@ -449,7 +451,6 @@ function upload(username) {
       if (rows > 0) {
         tempId =  tempId - 1;
         upload(name);
-       // alert("fail checkDb tempid is: "+tempId);
         
       } else {
         alert("Upload Complete");
@@ -463,14 +464,15 @@ function upload(username) {
   
   return d;
 }
-function (id, tags, user) {
+
+function sendData(id, tags, user) {
   
   var d = $.Deferred();
   var title = "GeoBucket " + id;
   // BEGIN: drupal services node create login (warning: don't use https if you
   // don't have ssl setup)
   $.ajax({
-    url : "http://api.geobucket.org/?q=bucket/node.json",
+    url : "http://192.168.38.100/geobucket/?q=bucket/node.json",
     type : 'post',
     data : 'node[type]=geobuckettype&node[title]='
       + encodeURIComponent(title)
@@ -544,52 +546,65 @@ function onDeviceReady() {
 //onSuccess Geolocation
 function onSuccess(position) {
   
-  if (localStorage.accuracy != undefined && localStorage.accuracy != null) {
-    accuracy = localStorage.accuracy;
-  } else {
-    accuracy = 20;
-  }
-  
   acc = position.coords.accuracy;
-  $("#acc").empty().html("("+acc+"m) to atleast "+accuracy+" meters.");
   
   if (localStorage.lat != undefined && localStorage.lon != undefined) {
    
-  if (gps == true && position.coords.accuracy <= accuracy) {
+  if (gps == true && acc <= accuracy) {
+    
     var m = calcDist(localStorage.lat,position.coords.latitude,localStorage.lon,position.coords.longitude);
-    if (m >= 2.0) {
+    if (m >= 5.0) {
     
     localStorage.lat = position.coords.latitude;
     localStorage.lon = position.coords.longitude;
     
     //alert("The distance is: "+m);
-    localStorage.track = true;
+    track = true;
     saveCoords(position.coords.latitude, position.coords.longitude,
         position.timestamp, lineid);
     countDB();
     $("#stat")
     .empty()
     .html(
-        "<p id='track'>Now Tracking Points...</p>");
+        "<p id='track'>Now Tracking Points (Accuracy: "+acc+"m)</p>");
     }
     
+  }else if(gps == true && acc > accuracy )
+    {
+      
+      if(track == true){
+        
+        lineid = lineid + 1;
+        window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, createLine,
+            failLineCreate);
+        
+        track = false;
+       
+      }
+      
+      $("#stat")
+      .empty()
+      .html(
+      "<p id='initial'>Please wait, improving GPS Accuracy <a id='accy'></a>...</p>");
+      $("#accy").empty().html("("+acc+"m) to atleast "+accuracy+" meters.");
+        
   }
     
-  
-  }else{
-    
+  }
+  else
+    {
     if (gps == true && position.coords.accuracy <= accuracy) {
       localStorage.lat = position.coords.latitude;
       localStorage.lon = position.coords.longitude;
       
-      localStorage.track = true;
+      track = true;
       saveCoords(position.coords.latitude, position.coords.longitude,
           position.timestamp, lineid);
       countDB();
       $("#stat")
       .empty()
       .html(
-          "<p id='track'>Now Tracking Points...</p>");
+          "<p id='track'>Now Tracking Points (Accuracy: "+acc+"m)</p>");
       
     }
     
@@ -612,17 +627,11 @@ function onError(error) {
     clearWatch();
     $("#stat").empty().html("StandBy");
     
-  }else if(error.code == error.PERMISSION_DENIED && localStorage.track != undefined){
+  }else if(error.code == error.PERMISSION_DENIED && track != false){
     lineid = lineid + 1;
     window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, createLine,
         failLineCreate);
     //alert("Error PERMISSION_DENIED: "+error.message+", "+error.code);
-    
-  }else if(error.message == gpsoff && localStorage.track != undefined){
-    lineid = lineid + 1;
-    window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, createLine,
-        failLineCreate);
-    //alert("Error gpsoff: "+error.code);
     
   }
 }
@@ -825,10 +834,10 @@ function createTags(batch, h) {
   if (h >= batch) {
     
     db
-    .transaction(function(transaction) {
+    .transaction(function(transaction) {			
       transaction
       .executeSql(
-          'SELECT * FROM gable WHERE submit=? and lineId =? ORDER BY tim, id LIMIT '
+          'SELECT * FROM gable WHERE submit=? and lineId =? ORDER BY tim, id LIMIT '		
           + batch + ';',
           [ 0,  tempId],
           function(transaction,
@@ -885,7 +894,7 @@ function createTags(batch, h) {
       transaction
       .executeSql(
           'SELECT * FROM gable WHERE submit=? and lineId =? ORDER BY tim, id;',
-          [ 0, tempId ],
+          [ 0, tempId],
           function(transaction,
               result) {
                 
@@ -912,10 +921,10 @@ function createTags(batch, h) {
                   for ( var i = 0; i < result.rows.length; i++) {
                     allTags = allTags
                     + result.rows
-                    .item(i).lat
+                    .item(i).lon
                     + ' '
                     + result.rows
-                    .item(i).lon;
+                    .item(i).lat;
                     updateRecord(result.rows
                         .item(i).id);
                   }
@@ -937,11 +946,11 @@ function createTags(batch, h) {
   
   return d;
 }
+
 //Update record on the fly
 function updateRecord(id) {
   
   db.transaction(function(tx) {
-    
     tx.executeSql("UPDATE gable SET submit = ? WHERE id = ?", [ 1, id ],
         null, onDBError);
   });
@@ -958,7 +967,7 @@ function loginStatus() {
   
   var d = $.Deferred();
   $.ajax({
-    url : "http://api.geobucket.org/?q=bucket/system/connect.json",
+    url : "http://192.168.38.100/geobucket/?q=bucket/system/connect.json",
     type : 'post',
     dataType : 'json',
     error : function(XMLHttpRequest, textStatus, errorThrown) {
@@ -984,7 +993,7 @@ function login(name, pass) {
   
   var d = $.Deferred();
   $.ajax({
-    url : "http://api.geobucket.org/?q=bucket/user/login.json",
+    url : "http://192.168.38.100/geobucket/?q=bucket/user/login.json",
     type : 'post',
     data : 'username=' + encodeURIComponent(name) + '&password='
     + encodeURIComponent(pass),
@@ -1008,7 +1017,7 @@ function login(name, pass) {
 function logout() {
   
   $.ajax({
-    url : "http://api.geobucket.org/?q=bucket/user/logout.json",
+    url : "http://192.168.38.100/geobucket/?q=bucket/user/logout.json",
     type : 'post',
     dataType : 'json',
     error : function(XMLHttpRequest, textStatus, errorThrown) {
@@ -1053,7 +1062,7 @@ function readPassAsText(file) {
 }
 function failreadPass(evt) {
   
-  alert("User and Pass Not read");
+  //alert("User and Pass Not read");
 }
 function savePasswords(fileSystem) {
   
@@ -1077,7 +1086,7 @@ function savePassFileWriter(writer) {
   writer.write(auth);
 }
 function failsavePass(error) {
-  alert("User and Pass Not Saved");
+  //alert("User and Pass Not Saved");
   $.unblockUI();
 }
 function clearPasswords(fileSystem) {
@@ -1100,8 +1109,8 @@ function clearPassFileWriter(writer) {
   writer.write(auth);
 }
 function failclearPass(error) {
-  alert("Error Logging Out, Try again");
-  $.unblockUI();
+  //alert("Error Logging Out, Try again");
+ // $.unblockUI();
 }
 function createAnonymous(fileSystem) {
   
@@ -1124,7 +1133,7 @@ function anonymousFileWriter(writer) {
   writer.write(auth);
 }
 function failanonymousCreate(error) {
-  alert("User and Pass Not Saved");
+ // alert("User and Pass Not Saved");
   $.unblockUI();
 }
 function readAnonymous(fileSystem) {
@@ -1151,7 +1160,7 @@ function readAnonymousText(file) {
   reader.readAsText(file);
 }
 function failAnonymousread(evt) {
-  alert("User and Pass Not read");
+  //alert("User and Pass Not read");
 }
 function deleteAnony(fileSystem) {
   
@@ -1174,7 +1183,7 @@ function gotDeleteFileWrite(writer) {
   writer.write(auth);
 }
 function failDeleteAnony(error) {
-  alert("User and Pass Not Saved");
+  //alert("User and Pass Not Saved");
   $.unblockUI();
 }
 
@@ -1204,7 +1213,7 @@ function readAsText(file) {
   reader.readAsText(file);
 }
 function failSettings(evt) {
-  alert("Settings Not Read");
+  //alert("Settings Not Read");
 }
 
 function saveSettings(fileSystem) {
