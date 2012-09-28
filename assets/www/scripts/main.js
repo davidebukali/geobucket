@@ -14,9 +14,11 @@ var rows = 0;
 display = true;
 
 var line = "";
+var points = "";
 var multi = "";
 
 var mLine = true;
+var mPoint = false;
 var point;
 var multiids = new Array();
 var pointids = new Array();
@@ -25,6 +27,8 @@ var wkt;
 var mark;
 
 var iDmarker = 0;
+var iDm = 0;
+
 var stringStatus;
 
 $(document)
@@ -114,6 +118,13 @@ $("#saveSettings").live(
 $("#settings").live("click", function(event, ui)
             {
   $.mobile.changePage("#page_login", "slide", true, false);
+            });
+
+$("#redo").live("click", function(event, ui)
+            {
+  redoRecord();
+  countDB();
+  countUpload();
             });
 
 $("#about").live("click", function(event, ui)
@@ -249,6 +260,8 @@ $("#upload")
               else
               {
                 
+                tempId = parseInt(localStorage.line, 10);
+                                                          /*
                 $ .blockUI({ message : '<h4><img src="images/ajax-loader.gif" /><br/>Checking Connection...</h4>', css : { top : ($(window).height()) /
                   3 + 'px', left : ($(window).width() - 200) / 2 + 'px',
                   width : '200px', backgroundColor : '#33CCFF',
@@ -309,9 +322,9 @@ $("#upload")
                   $.unblockUI();
                   alert("GeoBucket Site is Not Available")
                 
-                });
+                });*/
                 
-                // upload("dave");
+                upload();
               }
             });
 
@@ -342,6 +355,7 @@ function upload()
   var batchSize;
   
   if(display == true){
+    
     $
     .blockUI({
       message : '<h4><img src="images/ajax-loader.gif" /><br/>Uploading Traces...</h4>',
@@ -366,6 +380,9 @@ function upload()
   createTags(batchSize).then(function(tags, id, rowNumb)
               {
     
+    if(mLine == true)
+    {
+      
     if(line == "")
     {
       line = tags + line;
@@ -379,31 +396,103 @@ function upload()
       alert("rows: "+rowNumb+" greater than batch: "+batchSize); 
       alert("The tags are: " + "MULTILINESTRING ("+line+")");
       console.log("The tags are: " + line);
-      doSend("MULTILINESTRING ("+line+")");
+      rows = 0;
       
-      // d.resolve(line);
+      if((line.split("(").length - 1) > 1){
+        var data = "MULTILINESTRING ("+line+")";
+      }else{
+        var data = "LINESTRING ("+line+")";
+      }
+      
+      doSend(data);
+      line = "";
       
     }else if(id <= 1){
       alert("TempId is <= 1: "+tempId);
       console.log("line = " + line);
-      
+      rows = 0;
       alert("The tags are: " + "MULTILINESTRING ("+line+")");
-      console.log("The tags are: " + line);
-      doSend("MULTILINESTRING ("+line+")");
       
-    }else{
+      if((line.split("(").length - 1) > 1){
+        var data = "MULTILINESTRING ("+line+")";
+      }else{
+        var data = "LINESTRING ("+line+")";
+      }
       
+      doSend(data);
+      
+      line = "";
+      tempId = parseInt(localStorage.line, 10)
+      mLine = false;
+      mPoint = true;
+      
+    }else
+    {  
       alert("rows: "+rowNumb+" < batch: "+batchSize+" id > 1: "+tempId); 
-      multiids[iDmarker] = tempId;
-      tempId = tempId - 1;
-      iDmarker = iDmarker + 1;
       
       upload();
       
     }
+    
+              }else if(mPoint == true)
+              {
+                alert("mPoint is true");
+                
+                if(points == "")
+                {
+                  points = tags + points;
+                }
+                else
+                {
+                  points = tags + "," + points;
+                }
+                
+                if(rowNumb > batchSize){
+                  alert("rows: "+rowNumb+" greater than batch: "+batchSize); 
+                  alert("The points are: " + "MULTIPOINT ("+points+")");
+                 // console.log("The tags are: " + line);
+                  rows = 0;
+                  
+                  if((line.split("(").length - 1) > 1){
+                    var data = "MULTIPOINT ("+line+")";
+                  }else{
+                    var data = "POINT ("+line+")";
+                  }
+                  
+                  doSend(data);
+                  
+                }else if(id <= 1){
+                  alert("TempId is <= 1: "+tempId);
+                  console.log("line = " + line);
+                  rows = 0;
+                  alert("The points are: " + "MULTIPOINT ("+points+")");
+                  console.log("The points are: " + points);
+                  
+                  if((line.split("(").length - 1) > 1){
+                    var data = "MULTIPOINT ("+line+")";
+                  }else{
+                    var data = "POINT ("+line+")";
+                  }
+                  
+                  doSend(data);
+                    
+                  tempId = parseInt(localStorage.line, 10)
+                  mLine = true;
+                  mPoint = false;
+                  
+                }else
+                {  
+                  alert("rows: "+rowNumb+" < batch: "+batchSize+" id > 1: "+tempId); 
+                  
+                  upload();
+                  
+                }
+              }
+    
               }).fail(function()
                           {
-                alert("Wkt-LineString not created");
+                alert("Fail createTags Wkt-LineString not created");
+                console.log("The wkt was not created");
                 tempId = tempId - 1;
                 upload();
                 
@@ -419,17 +508,18 @@ function clearSubmitted(linestring){
       {
         updateRecord(pointids[x]);
       }
+    pointids = [];
   }
 else if(linestring.indexOf("MULTILINESTRING") != -1)
   {
+  alert("clearing linestring "+linestring+" multiids length is "+multiids.length);
     for( var y = 0; y < multiids.length; y++)
       {
         updateRecord(multiids[y]);
-        
+        alert("Cleared line id "+multiids[y]);
       }
     console.log("Cleared linestring array");
     multiids = [];
-    
   }
   
 }
@@ -445,14 +535,15 @@ function doSend(t){
                   
                   if(ro > 0) {
                     checkDBLines(tempId).then(function() {
-                      rows = 0;
+                      alert("There's more to upload");
                       upload(); 
                       countUpload();
                       countDB(); 
                     
                     }).fail(function() { 
+                      alert("Move on tempId is "+tempId);
                       tempId = tempId - 1;
-                      rows = 0;
+                      
                       upload();
                       countUpload();
                       countDB();  
@@ -945,16 +1036,114 @@ function doSend(t){
                 var d = $.Deferred();
                 var allTags = "";
                 
-                checkMultiLines(tempId).then(function(count){
+                checkMultiLines(mark).then(function(count){
                   rows = rows + count;
-                  
-                  console.log("line string count is: "+rows);
+                  //alert("line string count is "+rows+" for tempId "+tempId);
+                  //console.log("line string count is: "+rows+" for tempId "+tempId);
                   
                   db.transaction(function(transaction)
                               {
                     transaction.executeSql(
                                 'SELECT * FROM gable WHERE submit=? and lineId =? ORDER BY tim, id;',
-                                [ 0, tempId ], function(transaction, result)
+                                [ 0, mark ], function(transaction, result)
+                                {
+                                  
+                                  for( var i = 0; i < count; i++)
+                                  {
+                                    allTags = allTags +
+                                    result.rows.item(i).lon + ' ' +
+                                    result.rows.item(i).lat;
+                                    if(i < (count) - 1)
+                                    {
+                                      allTags = allTags + ',';
+                                    }
+                                    
+                                  }
+                                  
+                                  allTags = "(" + allTags + ")"; 
+                                  // console.log("line
+                                  
+                                  // string count is:
+                                  // "+rows);
+                                  multiids[iDmarker] = mark;
+                                  mark = mark - 1;
+                                  iDmarker = iDmarker + 1;
+                                  tempId = tempId - 1;
+                                  d.resolve(allTags, mark, rows);
+                                }
+                                
+                                , function(transaction, error)
+                                {
+                                  alert(error);
+                                  
+                                }
+                    );
+                              });
+                  
+                  
+                }).fail(function(p)
+                            {
+                  alert("No line string found");
+                  d.reject(mark, rows);
+                  
+                            });
+                
+                
+                return d;
+              }
+              
+              
+              function checkPoints(id)
+              {
+                
+                var d = $.Deferred();
+                var r = "";
+                
+                db
+                .transaction(function(transaction)
+                            {
+                  
+                  transaction
+                  .executeSql(
+                              'select * from gable where submit=? and lineId=? order by tim, id;',
+                              [ 0, id ], function(transaction, result)
+                              {
+                                
+                                r = result.rows.length;
+                                if(r == 1)
+                                {
+                                  d.resolve(r);
+                                }
+                                else
+                                {
+                                  d.reject(r);
+                                }
+                                
+                              }, function(transaction, error)
+                              {
+                                
+                                alert("Database Error: " + error);
+                              });
+                            });
+                return d;
+              }
+              
+              
+              
+              function readPoints(mark,batch){
+                var d = $.Deferred();
+                var allTags = "";
+                
+                checkPoints(mark).then(function(count){
+                  rows = rows + count;
+                  
+                  console.log("Point count is: "+rows);
+                  
+                  db.transaction(function(transaction)
+                              {
+                    transaction.executeSql(
+                                'SELECT * FROM gable WHERE submit=? and lineId =? ORDER BY tim, id;',
+                                [ 0, mark ], function(transaction, result)
                                 {
                                   
                                   for( var i = 0; i < count; i++)
@@ -973,7 +1162,12 @@ function doSend(t){
                                   // console.log("line
                                   // string count is:
                                   // "+rows);
-                                  d.resolve(allTags, tempId, rows);
+                                  
+                                  pointids[iDm] = mark;
+                                  mark = mark - 1;
+                                  iDm = iDm + 1;
+                                  tempId = tempId - 1;
+                                  d.resolve(allTags, mark, rows);
                                 }
                                 
                                 , function(transaction, error)
@@ -987,23 +1181,23 @@ function doSend(t){
                   
                 }).fail(function(p)
                             {
-                  console.log("Inside readDB checkMultilines. row number is: " + p);
-                  d.reject(tempId, rows);
+                  //console.log("Inside readDB checkMultilines. row number is: " + p);
+                  d.reject(mark, rows);
                   
                             });
                 
                 
                 return d;
               }
-              
+       
               function createTags(batch)
               {
                 var d = $.Deferred();
                 
                 if(mLine == true)
                 {
-                  
-                  readDB(tempId, batch).then(function(tags, id, rowNumb)
+                  //alert("tempId is "+tempId);
+;                  readDB(tempId, batch).then(function(tags, id, rowNumb)
                               {
                     
                     d.resolve(tags, id, rowNumb);
@@ -1012,12 +1206,16 @@ function doSend(t){
                                           {
                                 d.reject(rowNumb);
                                 
-                                
                                           });
                   
-                }else{
-                  d.reject();
-                }
+              }else if(mPoint == true){
+                readPoints(tempId, batch).then(function(tags, ids, rws){
+                  d.resolve(tags, ids, rws);
+                }).fail(function(id, rws){
+                  d.reject(id, rws);
+                });
+              }
+       
                 return d;
               }
               
@@ -1031,6 +1229,17 @@ function doSend(t){
                               [ 1, id ], null, onDBError);
                             });
               }
+              
+              function redoRecord()
+              {
+                
+                db.transaction(function(tx)
+                            {
+                  tx.executeSql("UPDATE gable SET submit = ? WHERE submit = ?",
+                              [ 0, 1 ], null, onDBError);
+                            });
+              }
+              
               function errorHandler(transaction, error)
               {
                 
