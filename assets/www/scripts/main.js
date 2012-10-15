@@ -1032,6 +1032,45 @@ function doSend(t){
                 return d;
               }
               
+              function showPoints(id)
+              {
+                
+                var d = $.Deferred();
+                var allTags = "";
+                
+                db
+                .transaction(function(transaction)
+                            {
+                  
+                  transaction
+                  .executeSql(
+                              'select * from gable where submit=? and lineId=? order by tim, id;',
+                              [ 0, id ], function(transaction, result)
+                              {
+                                
+                                for( var i = 0; i < result.rows.length; i++)
+                                {
+                                  allTags = allTags +
+                                  result.rows.item(i).lon + ' ' +
+                                  result.rows.item(i).lat;
+                                  if(i < (count) - 1)
+                                  {
+                                    allTags = allTags + ',';
+                                  }
+                                  
+                                  d.resolve(allTags);
+                                  
+                                }
+                                
+                              }, function(transaction, error)
+                              {
+                                
+                                alert("Database Error: " + error);
+                                d.reject(error);                              });
+                            });
+                return d;
+              }
+              
               function readDB(mark,batch){
                 var d = $.Deferred();
                 var allTags = "";
@@ -1083,8 +1122,14 @@ function doSend(t){
                   
                 }).fail(function(p)
                             {
-                  alert("No line string found");
-                  d.reject(mark, rows);
+                  alert("No line string found Rows are : "+p);
+                  showPoints(mark).then(function(v){
+                    alert("Points are "+v);
+                    
+                  }).fail(function(e){
+                    alert("Error: "+e);
+                  });
+                  
                   
                             });
                 
